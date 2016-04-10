@@ -42,6 +42,7 @@ def add2bucket(last,bsize,timestamp,s):
 
 
 def subreport(last):
+    records = []
     for k in sorted(last.keys()):
 #        print 'k=%d' % k
         cputot = 0.0
@@ -52,8 +53,11 @@ def subreport(last):
             ramtot += float(b[1])
         cpuavg = cputot / lenlastdata
         ramavg = ramtot / lenlastdata
-        print datetime.datetime.fromtimestamp(k), cpuavg, ramavg
-    
+        timestr = str(datetime.datetime.fromtimestamp(k))
+        print timestr, cpuavg, ramavg
+        records.append((timestr,cpuavg,ramavg))
+
+    return records
 
 def do_report(servername):
     t = int(time.time())   # now!
@@ -67,14 +71,18 @@ def do_report(servername):
         if t - 3600 < timestamp:
             add2bucket(lasthour, 60, timestamp, s)
 
-    subreport(lasthour)
-    subreport(lastday)
-
+    lh = subreport(lasthour)
+    ld = subreport(lastday)
+    return (lh, ld)
 
 class report:
     def GET(self, servername):
         if servers.get(servername):
-            return str(do_report(servername))
+            (lasthour, lastday) = do_report(servername)
+            r = {'servername' : servername, '1hourdata' : lasthour, '24hourdata' : lastday }
+            dumper = json.dumps(r)
+            print dumper
+            return dumper
         else:
             print 'no such server!'
             return 'server not found'

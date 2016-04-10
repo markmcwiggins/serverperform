@@ -41,4 +41,5 @@ for i in range(ngreen):
 
 r2 = requests.get("http://127.0.0.1:8080/report/server005")
 assert(r2.status_code == 200)
+print r2.json()
 
