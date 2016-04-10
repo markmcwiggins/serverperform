@@ -8,8 +8,8 @@ import web
 import datetime
 import time
 import json
-from heapq import heappush, heappop
-from collections import deque   # O(1) where normal python lists are O(n) on insertion
+from heapq import heappush, heappop      # priority queue -- keeps content sorted on insertion
+
 
 urls = ('/report/(.*)', "report",
         '/addserver', 'addserver')
@@ -25,12 +25,14 @@ class Server(object):
         self.name = name
         self.cpu = cpu
         self.ram = ram
-        if not servers.get(name):
+        if not servers.get(name):     # the same server will be instantiated several times with different Server objects
             servers[name] = []
             
-        heappush(servers[name],(dt, self))
+        heappush(servers[name],(dt, self))   # this keeps the content sorted by date/time
 
-def bucketize(bsize, timestamp):
+# 'bucket' of data in 60-second chunks (for the previous 1 hour's data) or 3600-second chunks (for the last 24 hours')
+
+def bucketize(bsize, timestamp):       
     buckx = timestamp % bsize
     return timestamp - buckx
 
@@ -44,7 +46,6 @@ def add2bucket(last,bsize,timestamp,s):
 def subreport(last):
     records = []
     for k in sorted(last.keys()):
-#        print 'k=%d' % k
         cputot = 0.0
         ramtot = 0.0
         lenlastdata = len(last[k])
@@ -75,7 +76,7 @@ def do_report(servername):
     ld = subreport(lastday)
     return (lh, ld)
 
-class report:
+class report:     # return a JSON of the last hour's and last day's data for this server
     def GET(self, servername):
         if servers.get(servername):
             (lasthour, lastday) = do_report(servername)
@@ -87,13 +88,15 @@ class report:
             print 'no such server!'
             return 'server not found'
 
-class addserver:            
+class rawdata:      # stub to be expanded for testing -- dumps all data for a server for the last 24 hours so averages could be rerun by test code 
+    pass 
+
+class addserver:           # add a piece of server data via JSON POST data            
     def POST(self):
         data =  json.loads(web.data())
         #print data
         dt = int(data['dt'])
         s = Server(data['server'],float(data['cpu']),float(data['ram']),dt)
-        #print 'got s: ', s.name
         return 'OK'
 
 if __name__ == '__main__':
